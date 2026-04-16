@@ -1630,8 +1630,7 @@ function renderReport() {
   const weeks = getTrackingWeeks();
   const todayStr = today();
   const currentWeekKey = getWeekKey(todayStr);
-  const defaultWeekKey = weeks.includes(currentWeekKey) ? currentWeekKey : weeks[weeks.length - 1];
-  const selWeek = (reportManualSelection && reportWeekKey && weeks.includes(reportWeekKey)) ? reportWeekKey : defaultWeekKey;
+  const selWeek = weeks.includes(currentWeekKey) ? currentWeekKey : weeks[weeks.length - 1];
   const selWeekIdx = Math.max(0, weeks.indexOf(selWeek));
   const prevWeek = selWeekIdx > 0 ? weeks[selWeekIdx - 1] : null;
   const user = USERS[reportUserIdx];
@@ -1808,9 +1807,8 @@ window.selectReportUser = function(i) {
 };
 
 window.selectReportWeek = function(i) {
-  const weeks = getTrackingWeeks();
-  reportWeekKey = weeks[i] || getWeekKey(today());
-  reportManualSelection = true;
+  reportManualSelection = false;
+  reportWeekKey = null;
   renderReport();
 };
 

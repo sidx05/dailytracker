@@ -1140,23 +1140,45 @@ function formatWeek(weekKey) {
   return s.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' – ' + e.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-// Get all weeks from April 14 (Mon) 2025 to May 26 2025
+function formatDateShort(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function getEarliestTrackedDate() {
+  let minDate = null;
+  Object.values(trackerData || {}).forEach((userData) => {
+    if (!userData || typeof userData !== 'object') return;
+    Object.keys(userData).forEach((dateKey) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+      if (!minDate || dateKey < minDate) minDate = dateKey;
+    });
+  });
+  return minDate;
+}
+
 function getTrackingWeeks() {
   const weeks = [];
-  let d = new Date('2025-04-14');
-  const end = new Date('2025-05-26');
+  const todayWeek = getWeekKey(today());
+  const earliestDate = getEarliestTrackedDate();
+
+  let startWeek = null;
+  if (earliestDate) {
+    startWeek = getWeekKey(earliestDate);
+  } else {
+    // If no data yet, show recent history for context
+    const d = new Date(todayWeek + 'T00:00:00');
+    d.setDate(d.getDate() - (7 * 11));
+    startWeek = getWeekKey(d.toISOString().split('T')[0]);
+  }
+
+  let d = new Date(startWeek + 'T00:00:00');
+  const end = new Date(todayWeek + 'T00:00:00');
   while (d <= end) {
     weeks.push(d.toISOString().split('T')[0]);
     d.setDate(d.getDate() + 7);
   }
-  // Also include current actual weeks
-  const now = new Date();
-  let cur = new Date('2025-04-14');
-  while (cur <= now) {
-    const k = cur.toISOString().split('T')[0];
-    if (!weeks.includes(k)) weeks.push(k);
-    cur.setDate(cur.getDate() + 7);
-  }
+
   return [...new Set(weeks)].sort();
 }
 
@@ -1594,12 +1616,18 @@ window.updateNotes = async function(userId, dateStr) {
 //  REPORT
 // ═══════════════════════════════════════════
 let reportUserIdx = 0;
-let reportWeekIdx = 0;
+let reportWeekIdx = -1;
 
 function renderReport() {
   const weeks = getTrackingWeeks();
   const todayStr = today();
-  // default to current week
+  const currentWeekKey = getWeekKey(todayStr);
+  const currentWeekIdx = weeks.indexOf(currentWeekKey);
+
+  // Default report to current week so values match dashboard.
+  if (reportWeekIdx < 0) {
+    reportWeekIdx = currentWeekIdx >= 0 ? currentWeekIdx : Math.max(0, weeks.length - 1);
+  }
   if (reportWeekIdx >= weeks.length) reportWeekIdx = Math.max(0, weeks.length - 1);
 
   const selWeek = weeks[reportWeekIdx];
@@ -1619,11 +1647,13 @@ function renderReport() {
   const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const weekDays = getWeekDays(selWeek);
 
-  // Build all-weeks heatmap data (April to May)
+  // Build all-weeks heatmap data from tracked range
   const allWeeks = getTrackingWeeks();
   const allDays = [];
   allWeeks.forEach(wk => getWeekDays(wk).forEach(d => allDays.push(d)));
-  const uniqueDays = [...new Set(allDays)].sort().filter(d => d >= '2025-04-14' && d <= '2025-05-31');
+  const uniqueDays = [...new Set(allDays)].sort();
+  const rangeStart = uniqueDays[0] || todayStr;
+  const rangeEnd = uniqueDays[uniqueDays.length - 1] || todayStr;
 
   const heatCells = uniqueDays.map(d => {
     const pct = getUserCompletion(user.id, d);
@@ -1668,7 +1698,7 @@ function renderReport() {
     <div class="report-header">
       <div>
         <div class="report-title">Weekly Reports</div>
-        <div style="font-size:14px;color:var(--muted);margin-top:4px;">April → May 2025 · Full tracking window</div>
+        <div style="font-size:14px;color:var(--muted);margin-top:4px;">${formatDateShort(rangeStart)} → ${formatDateShort(rangeEnd)} · Tracking window</div>
       </div>
       <div class="week-selector">
         ${weeks.map((wk, i) => `
@@ -1718,7 +1748,7 @@ function renderReport() {
     </div>
 
     <div class="chart-wrap">
-      <div class="chart-title">Consistency heatmap — Apr 14 → May 31</div>
+      <div class="chart-title">Consistency heatmap — ${formatDateShort(rangeStart)} → ${formatDateShort(rangeEnd)}</div>
       <div style="display:flex;gap:8px;margin-bottom:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);flex-wrap:wrap">
         ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => `<span style="flex:1;text-align:center;min-width:30px">${d}</span>`).join('')}
       </div>

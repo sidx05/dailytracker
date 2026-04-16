@@ -1563,6 +1563,7 @@ function renderTasksHtml(user, dayData) {
           const td = dayData.tasks[task.id] || {};
           const done = td.done || false;
           const mins = td.mins || '';
+          const hideTime = isNonCountedTimeTask(task);
           return `
             <div class="task-item ${done ? 'done' : ''}" id="task-${task.id}" style="${done ? `background:${user.colorDim};border-color:${user.colorBorder}` : ''}">
               <div class="task-check" onclick="toggleTask('${user.id}','${currentDay}','${task.id}')">
@@ -1571,6 +1572,7 @@ function renderTasksHtml(user, dayData) {
                 </svg>
               </div>
               <div class="task-label">${task.label}</div>
+              ${hideTime ? '' : `
               <div class="task-time">
                 <input type="number" value="${mins}" placeholder="0"
                   min="0" max="600"
@@ -1578,6 +1580,7 @@ function renderTasksHtml(user, dayData) {
                   style="color:${user.color}">
                 <label>min</label>
               </div>
+              `}
             </div>
           `;
         }).join('')}

@@ -1620,6 +1620,7 @@ window.updateNotes = async function(userId, dateStr) {
 // ═══════════════════════════════════════════
 let reportUserIdx = 0;
 let reportWeekIdx = -1;
+let reportHasInitialized = false;
 
 function renderReport() {
   const weeks = getTrackingWeeks();
@@ -1627,11 +1628,14 @@ function renderReport() {
   const currentWeekKey = getWeekKey(todayStr);
   const currentWeekIdx = weeks.indexOf(currentWeekKey);
 
-  // Default report to current week so values match dashboard.
-  if (reportWeekIdx < 0) {
+  // Default report to the current week on first open so values match dashboard.
+  if (!reportHasInitialized) {
+    reportWeekIdx = currentWeekIdx >= 0 ? currentWeekIdx : Math.max(0, weeks.length - 1);
+    reportHasInitialized = true;
+  }
+  if (reportWeekIdx < 0 || reportWeekIdx >= weeks.length || !weeks[reportWeekIdx]) {
     reportWeekIdx = currentWeekIdx >= 0 ? currentWeekIdx : Math.max(0, weeks.length - 1);
   }
-  if (reportWeekIdx >= weeks.length) reportWeekIdx = Math.max(0, weeks.length - 1);
 
   const selWeek = weeks[reportWeekIdx];
   const prevWeek = reportWeekIdx > 0 ? weeks[reportWeekIdx - 1] : null;
@@ -1810,6 +1814,7 @@ window.selectReportUser = function(i) {
 
 window.selectReportWeek = function(i) {
   reportWeekIdx = i;
+  reportHasInitialized = true;
   renderReport();
 };
 

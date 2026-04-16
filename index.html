@@ -1383,7 +1383,11 @@ window.showView = function(v, options = {}) {
   });
   currentView = v;
   if (v === 'home') renderHome();
-  if (v === 'report') renderReport();
+  if (v === 'report') {
+    reportHasInitialized = false;
+    reportWeekIdx = -1;
+    renderReport();
+  }
 
   if (options.push !== false) {
     pushViewState({ view: v });
